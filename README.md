@@ -1,6 +1,6 @@
 # Keyboard Piano
 
-This project is a simple piano application that allows you to play piano notes using your keyboard, without the need for any libraries. You can find the project repository [here](https://github.com/Abdullah-Yilmazer/piano).
+This project is a simple piano application that allows you to play piano notes using your keyboard, without the need for any libraries. You can find the project repository [here](https://github.com/Abdullah-Yilmazer/Keyboard-Piano).
 
 ## Overview
 
