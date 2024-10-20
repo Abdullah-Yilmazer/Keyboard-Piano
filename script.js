@@ -7,6 +7,7 @@ const notes = ["A0", "Bb0", "B0", "C1", "Db1", "D1", "Eb1", "E1", "F1", "Gb1",
   "Bb5", "B5", "C6", "Db6", "D6", "Eb6", "E6", "F6", "Gb6", "G6",
   "Ab6", "A6", "Bb6", "B6", "C7", "Db7", "D7", "Eb7", "E7", "F7",
   "Gb7", "G7", "Ab7", "A7", "Bb7", "B7", "C8"];
+
 const keywordNotes = {
   "1": "C4",
   "2": "D4",
@@ -59,191 +60,100 @@ const keywordNotes = {
   "é": "Db6"
 };
 
-
-
-// Tuşları #piano nun içine oluşturuyor
+// Tuşları #piano'nun içine oluşturuyor
 notes.forEach(e => {
   document.getElementById("piano").innerHTML += `<div class="${e[1] == "b" ? "black-key" : "white-key"} key" data-note="${e}">${e}</div>`;
 });
 
+// Basılı tutma kontrolü için değişken
+let isKeyPressed = {};
+
+// Aktif sesi saklamak için değişken
+let activeAudio = null;
+
 // Piyanonun ana fonksiyonu
-function playSound(e) {
-  // Eğer tıklanan element tuş değilse fonksiyondan çık
-  if (!e.target.classList.contains('key')) return;
-
-  // Tuşun data-note attribute değerini al ve notaya ata
-  const note = e.target.getAttribute('data-note');
-
-  // Audio elementi oluştur ve notaya göre ses dosyasını ayarla
-  const audio = document.createElement('audio');
-  audio.src = `notes/${note}.mp3`;
-
-  // Ses dosyasını başlat
+function playSound(note) {
+  const audio = new Audio(`notes/${note}.mp3`);
+  audio.volume = 1.0; // Başlangıç ses seviyesi
   audio.play();
+
+  activeAudio = audio; // Aktif sesi global değişkene kaydet
+
+  // Ses sona erdiğinde durumu temizle
+  audio.addEventListener('ended', () => {
+    audio.pause();
+    audio.currentTime = 0; // İleri sar
+    activeAudio = null; // Aktif sesi sıfırla
+  });
+}
+
+// Sesin giderek azalmasını sağlamak için bir fonksiyon
+function fadeOut(audio) {
+  let volume = 1.0; // Başlangıçta ses seviyesi 1
+  const fadeOutInterval = setInterval(() => {
+    volume -= 0.1; // Ses seviyesini her 10 ms'de 0.1 azalt
+    if (volume <= 0) {
+      volume = 0; // Ses sıfıra düşmemeli
+      clearInterval(fadeOutInterval); // Fade out işlemi tamamlandığında intervali temizle
+      audio.pause();
+      audio.currentTime = 0; // İleri sar
+      activeAudio = null; // Aktif sesi sıfırla
+    }
+    audio.volume = volume; // Ses seviyesini güncelle
+  }, 50); // Her 10 ms'de bir güncelle
 }
 
 // Sayfa yüklendiğinde tuşlara click event listener ekle
 window.addEventListener('load', () => {
   const keys = Array.from(document.querySelectorAll('.key'));
-  keys.forEach(key => key.addEventListener('click', playSound));
+  keys.forEach(key => {
+    key.addEventListener('mousedown', () => {
+      const note = key.getAttribute('data-note');
+      // Eğer tuş basılı değilse notayı çal
+      if (!isKeyPressed[note]) {
+        playSound(note);
+        isKeyPressed[note] = true; // Tuşu basılı olarak işaretle
+      }
+    });
+    key.addEventListener('mouseup', () => {
+      const note = key.getAttribute('data-note');
+      // Tuş bırakıldığında durumu sıfırla
+      isKeyPressed[note] = false;
+
+      // Ses bırakıldığında fadeOut fonksiyonunu çağır
+      if (activeAudio) {
+        fadeOut(activeAudio); // Fade out işlemi
+      }
+    });
+  });
 });
 
-
-
-
-
+// Klavye tuşları için event listener
 window.addEventListener("keydown", e => {
-  // Tuşun data-note attribute değerini al ve notaya ata
-  const note = `${keywordNotes[`${e.key}`]}`;
-  if (note != "undefined") {
-    // console.log(e.key, note);
-    // Audio elementi oluştur ve notaya göre ses dosyasını ayarla
-    const audio = document.createElement('audio');
-    audio.src = `notes/${note}.mp3`;
-
-    // Ses dosyasını başlat
-    audio.play();
-
-    // tuş stil değişikliği
-    const key = document.querySelector(`.key[data-note="${note}"]`);
-    key.style.backgroundColor = "grey";
-
-  } else {
-    // console.log(1111111111111111111, e.key);
+  const note = keywordNotes[e.key];
+  if (note) {
+    // Eğer tuş basılı değilse notayı çal
+    if (!isKeyPressed[note]) {
+      playSound(note);
+      isKeyPressed[note] = true; // Tuşu basılı olarak işaretle
+      // Tuş stil değişikliği
+      const key = document.querySelector(`.key[data-note="${note}"]`);
+      if (key) key.style.backgroundColor = "grey";
+    }
   }
-})
-window.addEventListener("keyup", e => {
-  const note = `${keywordNotes[`${e.key}`]}`;
-  const key = document.querySelector(`.key[data-note="${note}"]`);
-  key.style.backgroundColor = note[1] == "b" ? "black" : "white";
 });
 
+window.addEventListener("keyup", e => {
+  const note = keywordNotes[e.key];
+  if (note) {
+    // Tuş bırakıldığında durumu sıfırla
+    isKeyPressed[note] = false;
+    const key = document.querySelector(`.key[data-note="${note}"]`);
+    if (key) key.style.backgroundColor = note[1] == "b" ? "black" : "white";
 
-//------------------------------------------------------------//
-// const golden_hours = [
-//   { note: 'B4', duration: 500 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Db5', duration: 250 },
-//   { note: 'B4', duration: 500 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb5', duration: 250 },
-//   { note: 'Gb5', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Db5', duration: 500 },
-//   { note: 'Db5', duration: 500 },
-//   { note: 'B4', duration: 500 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb5', duration: 250 },
-//   { note: 'Gb5', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Db5', duration: 500 },
-//   { note: 'Db5', duration: 500 },
-//   { note: 'B4', duration: 500 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb5', duration: 250 },
-//   { note: 'Gb5', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Db5', duration: 500 },
-//   { note: 'Db5', duration: 500 },
-//   { note: 'B4', duration: 500 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb5', duration: 250 },
-//   { note: 'Gb5', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Gb4', duration: 250 },
-//   { note: 'B4', duration: 250 },
-//   { note: 'Db5', duration: 500 },
-//   { note: 'Db5', duration: 500 },
-//   { note: 'B4', duration: 500 },
-//   { note: 'Gb4', duration: 250 },
-// ]
-
-// function outoPlay(array) {
-//   let i = 0;
-//   let e;
-//   const intervalId = setInterval(() => {
-//     e = array[i];
-//     const key = document.querySelector(`.key[data-note="${e}"]`);
-//     key.style.backgroundColor = e[1] == "b" ? "black" : "white";
-//     console.log(e);
-//     const audio = document.createElement('audio');
-//     audio.src = `notes/${e}.mp3`;
-
-//     // Ses dosyasını başlat
-//     audio.play();
-
-//     // tuş stil değişikliği
-//     key.style.backgroundColor = "grey";
-
-
-//     i++;
-//     if (i >= pianoNotes.length) {
-//       clearInterval(intervalId);
-//     }
-//   }, 1000);
-//   array.forEach(e => {
-//   });
-// }
-
-
-// const noteMap = {
-//   "A": 440.00,
-//   "B": 493.88,
-//   "C": 523.25,
-//   "D": 587.33,
-//   "E": 659.25,
-//   "F": 698.46,
-//   "G": 783.99
-// };
-
-// function playNotes(notes, bpm) {
-//   const noteLength = (60 / bpm) * 1000;
-//   notes.forEach(note => {
-//     const pitch = noteMap[note.note[0]];
-//     const octave = parseInt(note.duration);
-//     const duration = noteLength * note.duration;
-//     console.log(note, pitch, octave);
-//     const isSharp = note.note[1] == "b";
-//     let noteName = "";
-//     if (isSharp) {
-//       noteName = `${note.note[0]}b${octave}`;
-//     } else {
-//       noteName = `${note.note}${octave}`;
-//     }
-//     const audioCtx = new AudioContext();
-//     const osc = audioCtx.createOscillator();
-//     const gainNode = audioCtx.createGain();
-//     osc.connect(gainNode);
-//     gainNode.connect(audioCtx.destination);
-//     osc.type = "triangle";
-//     osc.frequency.value = pitch * Math.pow(2, octave/100 - 4);
-//     gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-//     gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.001);
-//     gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration / 1000);
-//     osc.start();
-//     osc.stop(audioCtx.currentTime + duration / 1000);
-//     console.log(noteName, duration);
-//     setTimeout(() => {}, duration);
-//   });
-// }
+    // Ses bırakıldığında fadeOut fonksiyonunu çağır
+    if (activeAudio) {
+      fadeOut(activeAudio); // Fade out işlemi
+    }
+  }
+});

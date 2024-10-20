@@ -29,6 +29,7 @@ h1 {
    width: 95vw;
    height: 150px;
    position: relative;
+   user-select: none;
 }
 
 .key {
